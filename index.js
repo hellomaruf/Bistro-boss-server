@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
 // middleware
@@ -23,9 +23,24 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const menuCollection = client.db("bistroDB").collection("menu");
+    const cartsCollection = client.db("bistroDB").collection("carts");
 
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
+      res.send(result);
+    });
+
+    // Play with carts
+    app.post("/carts", async (req, res) => {
+      const cartItem = req.body;
+      const result = await cartsCollection.insertOne(cartItem);
+      res.send(result);
+    });
+
+    app.get("/carts/:email", async (req, res) => {
+      const cartEmail = req.params.email
+      const query = {email : cartEmail}
+      const result = await cartsCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -33,8 +48,6 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
   } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
   }
 }
 run().catch(console.dir);
