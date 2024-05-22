@@ -24,6 +24,7 @@ async function run() {
   try {
     const menuCollection = client.db("bistroDB").collection("menu");
     const cartsCollection = client.db("bistroDB").collection("carts");
+    const usersCollection = client.db("bistroDB").collection("users");
 
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
@@ -38,9 +39,16 @@ async function run() {
     });
 
     app.get("/carts/:email", async (req, res) => {
-      const cartEmail = req.params.email
-      const query = {email : cartEmail}
+      const cartEmail = req.params.email;
+      const query = { email: cartEmail };
       const result = await cartsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // users data
+    app.post("/users", async (req, res) => {
+      const users = req.body;
+      const result = await usersCollection.insertOne(users);
       res.send(result);
     });
 
