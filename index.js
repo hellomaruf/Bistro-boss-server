@@ -36,7 +36,40 @@ async function run() {
       console.log(token);
       res.send({ token });
     });
+    
+    const verifyToken = (req, res, next) => {
+      console.log("From verify token", req.headers);
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: "Forbidden Access" });
+      }
+      const token = req.headers.authorization.split(" ")[1];
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: "Forbidden Access" });
+        }
+        req.decoded = decoded;
+        next();
+      });
+    };
 
+    //user verify admin after verify token
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const isAdmin = user?.role === "admin";
+      if (!isAdmin) {
+        return res.status(401).send({ message: "Forbidden Access" });
+      }
+      next();
+    };
+
+
+    app.post("/menu", verifyToken, verifyAdmin, async (req, res) => {
+      const item = req.body;
+      const result = await menuCollection.insertOne(item);
+      res.send(result);
+    });
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
       res.send(result);
@@ -69,32 +102,6 @@ async function run() {
       res.send(result);
     });
 
-    const verifyToken = (req, res, next) => {
-      console.log("From verify token", req.headers);
-      if (!req.headers.authorization) {
-        return res.status(401).send({ message: "Forbidden Access" });
-      }
-      const token = req.headers.authorization.split(" ")[1];
-      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-        if (err) {
-          return res.status(401).send({ message: "Forbidden Access" });
-        }
-        req.decoded = decoded;
-        next();
-      });
-    };
-
-    //user verify admin after verify token
-    const verifyAdmin = async (req, res, next) => {
-      const email = req.decoded.email;
-      const query = { email: email };
-      const user = await usersCollection.findOne(query);
-      const isAdmin = user?.role === "admin";
-      if (!isAdmin) {
-        return res.status(401).send({ message: "Forbidden Access" });
-      }
-      next();
-    };
 
     app.get("/users/admin/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
